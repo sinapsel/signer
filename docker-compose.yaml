@@ -39,6 +39,8 @@ services:
     volumes:
       - ./src/app:/opt/signer/app
       - ./volumes/extras/gpg:/extras			              # SSL & GnuPG certs and keys
+      - ./volumes/gnupg:/root/.gnupg
+      - ./volumes/storage:/opt/signer/storage
       - ./src/main.py:/opt/signer/main.py:ro
       - ./src/celery.sh:/opt/signer/celery.sh:ro
       - ./src/uvicorn.sh:/opt/signer/uvicorn.sh:ro
@@ -63,7 +65,76 @@ services:
       dockerfile: docker/redis/Dockerfile
     env_file:
       - .env
+    command: --port ${REDIS_PORT}
     ports:
       - "${REDIS_PORT}:${REDIS_PORT}"
     volumes:
       - ./volumes/redis:/data	
+
+  worker:
+    container_name: s-celeryw
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./src/app:/opt/signer/app
+      - ./volumes/extras/gpg:/extras			              # SSL & GnuPG certs and keys
+      - ./volumes/gnupg:/root/.gnupg
+      - ./volumes/storage:/opt/signer/storage
+      - ./src/main.py:/opt/signer/main.py:ro
+      - ./src/celery.sh:/opt/signer/celery.sh:ro
+      - ./src/uvicorn.sh:/opt/signer/uvicorn.sh:ro
+    command: ["./celery.sh", "worker"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - app
+      - redis
+
+
+  beat:
+    container_name: s-celeryb
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./src/app:/opt/signer/app
+      - ./volumes/gnupg:/root/.gnupg
+      - ./volumes/storage:/opt/signer/storage
+      - ./src/main.py:/opt/signer/main.py:ro
+      - ./src/celery.sh:/opt/signer/celery.sh:ro
+      - ./src/uvicorn.sh:/opt/signer/uvicorn.sh:ro
+    command: [ "./celery.sh", "beat" ]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - app
+      - redis
+      - worker
+
+  flower:
+    container_name: s-celeryf
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./volumes/storage:/opt/signer/app/storage/
+      - ./src/app:/opt/signer/app
+      - ./src/main.py:/opt/signer/main.py:ro
+      - ./src/celery.sh:/opt/signer/celery.sh:ro
+      - ./src/uvicorn.sh:/opt/signer/uvicorn.sh:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ["./celery.sh", "flower"]
+    depends_on:
+      - app
+      - redis
+      - worker
+    ports:
+      - "${EXTERNAL_FLOWER_PORT}:${INTERNAL_FLOWER_PORT}"

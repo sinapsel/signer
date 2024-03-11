@@ -31,8 +31,12 @@ RUN apt-get update -y \
         vim \
         wget \
         unzip \
-        gpg
+        gpg \
+        gpg-agent
 COPY --from=builder /opt/py_build/wheels /wheels
 
 
 RUN --mount=type=cache,target=/root/.cache/pip pip install /wheels/*
+
+COPY --chmod=700 ./docker/app/gpg.conf ./docker/app/gpg-agent.conf /root/.gnupg/
+RUN chmod 700 /root/.gnupg

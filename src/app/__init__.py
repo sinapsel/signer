@@ -20,7 +20,7 @@ def create_app(_=None) -> Tuple[FastAPI, Any]:
         servers=[{'url': '/api'}],
         root_path='/api',
         root_path_in_servers=False,
-        openapi_url='/api/docs/openapi.json',
+        openapi_url='/docs/openapi.json',
         redoc_url=None,
         docs_url='/swagger'
     )
