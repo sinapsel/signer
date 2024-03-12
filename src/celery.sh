@@ -2,7 +2,7 @@
 
 if [[ "${1}" == "worker" ]]; then
   echo "celery Worker"
-  celery -A main.celery worker --loglevel=info --pidfile=/opt/signer/app/storage/celeryd.pid #--broker="${CELERY_BROKER_URL}"
+  celery -A main.celery worker --beat --loglevel=info --broker="${CELERY_BROKER_URL}" #--pidfile=/opt/signer/app/storage/celeryd.pid #--broker="${CELERY_BROKER_URL}"
 elif [[ "${1}" == "flower" ]]; then
   echo "Celery Flower"
   celery -A main.celery flower --loglevel=info --broker="${CELERY_BROKER_URL}"

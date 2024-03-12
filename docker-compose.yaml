@@ -93,29 +93,6 @@ services:
       - app
       - redis
 
-
-  beat:
-    container_name: s-celeryb
-    build:
-      context: .
-      dockerfile: docker/app/Dockerfile
-    env_file:
-      - .env
-    volumes:
-      - ./src/app:/opt/signer/app
-      - ./volumes/gnupg:/root/.gnupg
-      - ./volumes/storage:/opt/signer/storage
-      - ./src/main.py:/opt/signer/main.py:ro
-      - ./src/celery.sh:/opt/signer/celery.sh:ro
-      - ./src/uvicorn.sh:/opt/signer/uvicorn.sh:ro
-    command: [ "./celery.sh", "beat" ]
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-      - app
-      - redis
-      - worker
-
   flower:
     container_name: s-celeryf
     build:
