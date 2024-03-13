@@ -6,13 +6,12 @@ import os
 from app.settings import logger
 
 
-_info = re.compile(r'^(?P<type>(pub|sec))\s*(?P<algo>\w+)/(?P<id>[a-zA-Z0-9]+).*(?P<started>[\d-]{10}).*\[expires: (?P<expire>[\d-]{10})\]$')
+_info = re.compile(r'^(?P<type>(pub|sec))\s*(?P<algo>\w+)/(?P<id>[a-zA-Z0-9]+).*(?P<started>[\d-]{10}).*\[expire(d|s): (?P<expire>[\d-]{10})\]$')
 _finger = re.compile(r'[A-Z0-9]{1,4}')
 
 def list_keys(public: bool = True) -> list[Mapping[str, str]]:
     output = run(['gpg', '-k' if public else '-K', '--keyid-format=long'], stdout=PIPE).stdout.decode('utf-8')
     keys = []
-
     for _key_info in output.split('\n\n')[:-1]:
 
         info, finger, cred, *_ = filter(lambda x: '---' not in x and '/.gnupg/' not in x, _key_info.split('\n'))

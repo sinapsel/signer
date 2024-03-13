@@ -25,6 +25,7 @@ async def get_by_uid(uid: str, ascii: Optional[bool] = None):
         cert = export(uid, ascii)
         if not len(cert):
             raise Exception('key not found')
-        return StreamingResponse(chunker(cert))
+        return StreamingResponse(chunker(cert), media_type='application/octet-stream', 
+                                 headers={'Content-Disposition': f'inline; filename="{uid}.crt"'})
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e.args)

@@ -20,13 +20,11 @@ services:
     ports:
       - "${EXTERNAL_SSL_PORT}:${INTERNAL_SSL_PORT}"
     volumes:
-      - ./src/public:/var/www/html/static		            # static built
+      - ./src/front/dist:/var/www/html/static		            # static built
       - ./docker/web/nginx/conf.d:/etc/nginx/conf.d:ro	# configs
       - ./volumes/extras/ssl:/extras			              # SSL & GnuPG certs and keys
       - ./volumes/nginx:/var/log/nginx 		              # log файлы.
     command: ["nginx", "-g", "daemon off;"]
-    depends_on:
-      - app
 
   app:
     container_name: s-app
