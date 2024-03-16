@@ -2,12 +2,11 @@
 
 import RowsCollection from '@c/RowsCollection.vue';
 import CertItem from '@c/CertItem.vue';
-import { defineAsyncComponent, reactive, ref } from 'vue';
-import fetchCerts from '@q/fetch-certs.js';
+import useFetch from '@h/use-fetch.js';
 
 export default {
     async setup() {
-        const { exec, response, error, fetching } = fetchCerts();
+        const { exec, response, error, fetching } = useFetch('/certs/all');
         await exec();
 
         return {

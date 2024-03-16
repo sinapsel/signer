@@ -1,17 +1,24 @@
-from fastapi import APIRouter, UploadFile, File, Depends, Request, HTTPException, status
+from fastapi import APIRouter, UploadFile, File, Depends, Security, Request, HTTPException, status
 from fastapi.responses import StreamingResponse
 from typing import Annotated, Optional
+from app.configuration.auth import get_session_data
 
 router = APIRouter(
     prefix='/certs',
     tags=['certificates']
 )
 
-@router.get('/all/')
-async def get_all(public: Annotated[bool, 'List only public keys'] = True):
+@router.get('/all')
+async def get_all():
     from app.services.gpg import list_keys
 
-    return list_keys(public=public)
+    return list_keys(public=True)
+
+@router.get('/private')
+async def get_private(session_data: Annotated[str, Depends(get_session_data)]):
+    from app.services.gpg import list_keys
+
+    return list_keys(public=False)
 
 async def chunker(resourse: bytes, chunk: int = 128):
     for i in range(0, len(resourse), chunk):

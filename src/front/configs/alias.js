@@ -11,6 +11,6 @@ export default {
       {find: '@c', replacement: regPath('/components')},
       {find: '@v', replacement: regPath('/views')},
       {find: '@l', replacement: regPath('/layouts')},
-      {find: '@q', replacement: regPath('/queries')}
+      {find: '@h', replacement: regPath('/helpers')}
     ]
 }

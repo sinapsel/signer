@@ -5,33 +5,16 @@ from typing import Annotated, Optional
 from app.models.sign import SignAttribsFull, SignKind
 from os.path import split as pathsplit
 from hashlib import md5
-import secrets
+from app.configuration.auth import get_session_data
 
-from app.settings import default_storage_config as DSC, AdminCredentials, get_admin_credentials
+from app.settings import default_storage_config as DSC
 
 router = APIRouter(
     prefix='/signature',
     tags=['sign']
 )
 
-security = HTTPBasic()
 
-def check_auth(credentials: Annotated[HTTPBasicCredentials, Depends(security)],
-                correct_credentials: Annotated[AdminCredentials, Depends(get_admin_credentials)]):
-    login = credentials.username.encode("utf8")
-    passw = md5(credentials.password.encode("utf8")).hexdigest().encode('utf-8')
-
-
-    is_correct = secrets.compare_digest(login, correct_credentials.login) and\
-          secrets.compare_digest(passw, correct_credentials.passw)
-
-    if not is_correct:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Basic"},
-        )
-    return True
 
 @router.post('')
 async def sign(file: Annotated[UploadFile, File(description="File to sign")],
@@ -40,7 +23,7 @@ async def sign(file: Annotated[UploadFile, File(description="File to sign")],
                kind: Optional[SignKind] = Form(SignKind.detached),
                ascii: Optional[bool] = Form(None),
                fixFileExists: Optional[bool] = Form(None),
-               auth: Optional[bool] = Depends(check_auth)
+               auth: Optional[bool] = Depends(get_session_data)
             ):
     from app.services.files import save
     from app.tasks.sign import sign_by_path
@@ -53,7 +36,7 @@ async def sign(file: Annotated[UploadFile, File(description="File to sign")],
             ascii=ascii, fixFileExists=fixFileExists
         )
 
-        sign_by_path.apply_async(args=(attribs.dict(),), task_id=id, countdown=0.5)
+        sign_by_path.apply_async(args=(attribs.dict(),), task_id=id, countdown=5)
 
         return {'id': id}
     except Exception as e:
@@ -61,7 +44,7 @@ async def sign(file: Annotated[UploadFile, File(description="File to sign")],
 
 
 @router.get('/id/{id}')
-async def get_result_by_id(id: str, auth: Optional[bool] = Depends(check_auth)):
+async def get_result_by_id(id: str, download: bool = False, download_source: bool = False, auth: Optional[bool] = Depends(get_session_data)):
     from celery.result import AsyncResult
     from celery import current_app
 
@@ -71,8 +54,19 @@ async def get_result_by_id(id: str, auth: Optional[bool] = Depends(check_auth)):
         raise HTTPException(status_code=status.HTTP_425_TOO_EARLY, detail='not ready')
 
     if res.failed():
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=res.result.args)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail={
+            'error': res.result.__class__.__name__,
+            'info': res.result.args
+        })
 
     if res.successful():
-        return FileResponse(path=res.result.get('singed_path'), filename=pathsplit(res.result.get('singed_path'))[1],
+        signed_path = pathsplit(res.result.get('singed_path'))[1]
+        source_path = pathsplit(res.result.get('path'))[1]
+
+        if download:
+            return FileResponse(path=res.result.get('singed_path'), filename=signed_path,
                             media_type="application/octet-stream")
+        if download_source:
+            return FileResponse(path=res.result.get('path'), filename=source_path,
+                            media_type="application/octet-stream")
+        return {'success': True, 'download': signed_path, 'download_source': source_path}

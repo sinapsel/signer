@@ -1,7 +1,7 @@
 <template>
     <div id="content">
-        <h2 class="errtext">СТРАНИЦА НЕ НАЙДЕНА</h2>
-        <p>Вернуться на <router-link :to="'/'">главную</router-link></p>
+        <h2 class="errtext">E404: Page not found</h2>
+        <p>Go <router-link :to="'/'">home</router-link></p>
     </div>
 </template>
 

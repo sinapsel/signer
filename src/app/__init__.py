@@ -3,7 +3,9 @@ from typing import Any, Tuple
 from fastapi import FastAPI
 
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.middleware.cors import CORSMiddleware
+# from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from app.configuration.server import Server
 from app.tasks.celery import create_celery
@@ -29,12 +31,16 @@ def create_app(_=None) -> Tuple[FastAPI, Any]:
     app.add_middleware(
         TrustedHostMiddleware, allowed_hosts=["localhost"]
     )
+
+    app.add_middleware(GZipMiddleware, minimum_size=100)
+    
     app.add_middleware(
             CORSMiddleware,
             allow_origins=['http://localhost:5173'], # Vite
             allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
+            allow_methods=["GET", "POST", "DELETE", "PUT", "PATCH"],
+            allow_headers=["Content-Type", "Set-Cookie", "Access-Control-Allow-Headers", "Access-Control-Allow-Origin",
+                   "Authorization"]
     )
     celery_app = create_celery()
 

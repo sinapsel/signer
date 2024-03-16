@@ -49,7 +49,7 @@ def sign(path: str, user: str, pin: str, kind: SignKind|str = SignKind.detached,
         raise PermissionError("Bad passphrase")
     if 'File exists' in err:
         if not fixFileExists:
-            raise FileExistsError
+            raise FileExistsError("File already exists!")
         os.remove(path+'.sig')
         sign(path, user, pin, kind, ascii)
 
@@ -71,12 +71,22 @@ def verify(sig_path: str, path: str|None = None) -> Mapping[str, str]:
     p = run(cmd, stdout=PIPE, stderr=STDOUT)
 
     output = p.stdout.decode('utf-8')
+    fatal_strings = [
+        'no valid OpenPGP data found',
+        'not a detached signature',
+        'no signed data'
+    ]
+
+    fatal = list(filter(lambda x: x in output, fatal_strings))
 
     if 'No such file' in output:
-        raise FileNotFoundError
-    if 'no valid' in output:
-        raise TypeError
-    if 'No public key' in output or p.returncode != 0:
+        raise FileNotFoundError("No such file!")
+    
+    if fatal:
+        raise TypeError(fatal[0])
+    
+    if 'No public key' in output:
+        print(output)
         return {'success': False, 'result': output}
     
     return {'success': True, 'result': output}

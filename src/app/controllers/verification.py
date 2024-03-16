@@ -12,11 +12,12 @@ router = APIRouter(
 async def attached_signature(file: Annotated[UploadFile, File(description="File with attached signature")],):
     from app.services.files import save
     from app.tasks.verify import verify_by_path
+    # raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=None)
 
     try:
         id = save([file.file], [file.filename])
 
-        verify_by_path.apply_async(args=(DSC.path(id, file.filename),), task_id=id, countdown=0.5)
+        verify_by_path.apply_async(args=(DSC.path(id, file.filename),), task_id=id, countdown=5)
 
         return {'id': id}
     except Exception as e:
@@ -33,7 +34,7 @@ async def detached_signature(file: Annotated[UploadFile, File(description="File"
         id = save([signature.file, file.file], [signature.filename, file.filename])
 
         verify_by_path.apply_async(args=(DSC.path(id, signature.filename), DSC.path(id, file.filename)),
-                                    task_id=id, countdown=0.5)
+                                    task_id=id, countdown=5)
 
         return {'id': id}
     except Exception as e:
@@ -51,7 +52,10 @@ async def get_result_by_id(id: str):
         raise HTTPException(status_code=status.HTTP_425_TOO_EARLY, detail='not ready')
 
     if res.failed():
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=res.result.args)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail={
+            'error': res.result.__class__.__name__,
+            'info': res.result.args
+        })
 
     if res.successful():
         return res.result
